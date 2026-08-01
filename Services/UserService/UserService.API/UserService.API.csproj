@@ -1,0 +1,39 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<UserSecretsId>e629b02d-7742-45e9-8bd1-f84871ff88d5</UserSecretsId>
+		<DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+		<DockerfileContext>..\..\..</DockerfileContext>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- MediatR -->
+		<PackageReference Include="MediatR" Version="12.4.1" />
+		<PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.23.0" />
+
+		<!-- Swagger -->
+		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
+
+		<!-- JWT Authentication -->
+		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.0" />
+
+		<!-- EF Core Tools (Only for migrations - Design time) -->
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.0">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+
+		<!-- ❌ REMOVED: Pomelo.EntityFrameworkCore.MySql - This belongs in Infrastructure! -->
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- Project References - Using relative paths -->
+		<ProjectReference Include="..\UserService.Application\UserService.Application.csproj" />
+		<ProjectReference Include="..\UserService.Infrastructure\UserService.Infrastructure.csproj" />
+		<ProjectReference Include="..\..\..\Shared\EstateHub.Contracts\EstateHub.Contracts.csproj" />
+	</ItemGroup>
+
+</Project>

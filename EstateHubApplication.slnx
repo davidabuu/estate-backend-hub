@@ -1,0 +1,15 @@
+<Solution>
+  <Project Path="Gateway/EstateHub.Gateway/EstateHub.Gateway.csproj" />
+  <Project Path="Services/NotificationService/NotificationService.API/NotificationService.API.csproj" />
+  <Project Path="Services/NotificationService/NotificationService.Application/NotificationService.Application.csproj" />
+  <Project Path="Services/NotificationService/NotificationService.Domain/NotificationService.Domain.csproj" />
+  <Project Path="Services/NotificationService/NotificationService.Infrastruture/NotificationService.Infrastruture.csproj" />
+  <Project Path="Services/SubscriptionService/SubscriptionService.API/SubscriptionService.API.csproj" />
+  <Project Path="Services/SubscriptionService/SubscriptionService.Application/SubscriptionService.Application.csproj" />
+  <Project Path="Services/SubscriptionService/SubscriptionService.Domain/SubscriptionService.Domain.csproj" />
+  <Project Path="Services/UserService/UserService.API/UserService.API.csproj" />
+  <Project Path="Services/UserService/UserService.Application/UserService.Application.csproj" />
+  <Project Path="Services/UserService/UserService.Domain/UserService.Domain.csproj" />
+  <Project Path="Services/UserService/UserService.Infrastructure/UserService.Infrastructure.csproj" />
+  <Project Path="Shared/EstateHub.Contracts/EstateHub.Contracts.csproj" />
+</Solution>
