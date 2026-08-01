@@ -1,5 +1,8 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 using UserService.Application.Commands.Auth;
 using UserService.Domain.Entities;
 using UserService.Infrastructure.Data;
@@ -47,10 +50,46 @@ builder.Services.AddMediatR(cfg =>
 });
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 
-// 5. Controllers
+// 5. JWT Authentication
+var jwtSecretKey = builder.Configuration["Jwt:SecretKey"];
+var jwtIssuer = builder.Configuration["Jwt:Issuer"];
+var jwtAudience = builder.Configuration["Jwt:Audience"];
+
+if (string.IsNullOrEmpty(jwtSecretKey))
+{
+	throw new InvalidOperationException(
+		"Jwt:SecretKey is missing. Set it via appsettings, environment variable (Jwt__SecretKey), or Azure Container App secret.");
+}
+
+builder.Services.AddAuthentication(options =>
+{
+	options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+	options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+	options.TokenValidationParameters = new TokenValidationParameters
+	{
+		ValidateIssuer = true,
+		ValidIssuer = jwtIssuer,
+
+		ValidateAudience = true,
+		ValidAudience = jwtAudience,
+
+		ValidateIssuerSigningKey = true,
+		IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecretKey)),
+
+		ValidateLifetime = true,
+		ClockSkew = TimeSpan.FromMinutes(1)
+	};
+});
+
+builder.Services.AddAuthorization();
+
+// 6. Controllers
 builder.Services.AddControllers();
 
-// 6. Swagger
+// 7. Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
