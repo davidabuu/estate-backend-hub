@@ -7,7 +7,7 @@ using UserService.Infrastructure.Service;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Add DbContext with MySQL
+
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 builder.Services.AddDbContext<UserDbContext>(options =>
