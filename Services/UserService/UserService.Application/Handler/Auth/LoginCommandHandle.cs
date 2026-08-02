@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using UserService.Application.Commands.Auth;
 using UserService.Application.DTOs.Responses.Auth;
-
 using UserService.Domain.Entities;
 using UserService.Infrastructure.Data;
 using UserService.Infrastructure.Service;
@@ -37,7 +36,11 @@ public class LoginCommandHandler(
 			throw new Exception("Invalid email or password");
 		}
 
-		
+		// 3. Check if user is active
+		if (!user.IsActive)
+		{
+			throw new Exception("Your account is deactivated. Please contact support.");
+		}
 
 		// 4. Get user roles
 		var roles = await _userManager.GetRolesAsync(user);
@@ -89,11 +92,11 @@ public class LoginCommandHandler(
 			RefreshToken: refreshToken,
 			UserId: user.Id,
 			Email: user.Email!,
-			FullName: user.FullName! ?? user.Email!,
+			FullName: user.FullName ?? user.Email!,
 			Role: primaryRole,
 			EstateId: estateId,
 			EstateName: estateName,
-			
+			IsApproved: isApproved,
 			ExpiresAt: DateTime.UtcNow.AddMinutes(60)
 		);
 	}

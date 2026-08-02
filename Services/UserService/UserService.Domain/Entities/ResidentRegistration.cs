@@ -1,4 +1,5 @@
 ﻿using UserService.Application.Enums;
+using UserService.Domain.Enums;
 
 namespace UserService.Domain.Entities;
 

@@ -1,5 +1,6 @@
 ﻿namespace UserService.Application.DTOS.Responses.Auth;
 
+
 public record EstateRegistrationResponse(
 	Guid UserId,
 	Guid EstateId,

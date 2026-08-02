@@ -4,9 +4,9 @@
   <Project Path="Services/NotificationService/NotificationService.Application/NotificationService.Application.csproj" />
   <Project Path="Services/NotificationService/NotificationService.Domain/NotificationService.Domain.csproj" />
   <Project Path="Services/NotificationService/NotificationService.Infrastruture/NotificationService.Infrastruture.csproj" />
-  <Project Path="Services/SubscriptionService/SubscriptionService.API/SubscriptionService.API.csproj" />
-  <Project Path="Services/SubscriptionService/SubscriptionService.Application/SubscriptionService.Application.csproj" />
-  <Project Path="Services/SubscriptionService/SubscriptionService.Domain/SubscriptionService.Domain.csproj" />
+  <Project Path="Services/PaymentService/PaymentService.API/PaymentService.API.csproj" />
+  <Project Path="Services/PaymentService/PaymentService.Application/PaymentService.Application.csproj" />
+  <Project Path="Services/PaymentService/PaymentService.Domain/PaymentService.Domain.csproj" />
   <Project Path="Services/UserService/UserService.API/UserService.API.csproj" />
   <Project Path="Services/UserService/UserService.Application/UserService.Application.csproj" />
   <Project Path="Services/UserService/UserService.Domain/UserService.Domain.csproj" />

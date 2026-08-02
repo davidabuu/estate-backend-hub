@@ -6,9 +6,9 @@ public record LoginResponse(
 	Guid UserId,
 	string Email,
 	string FullName,
-	string Role,           
-	string? EstateId,     
-	string? EstateName,    
-	
+	string Role,
+	string? EstateId,
+	string? EstateName,
+	bool IsApproved,
 	DateTime ExpiresAt
 );

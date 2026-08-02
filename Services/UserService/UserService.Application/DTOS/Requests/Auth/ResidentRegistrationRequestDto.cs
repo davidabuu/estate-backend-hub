@@ -1,4 +1,5 @@
 ﻿using UserService.Application.Enums;
+using UserService.Domain.Enums;
 
 namespace UserService.Application.DTOS.Requests.Auth
 {
@@ -13,7 +14,7 @@ namespace UserService.Application.DTOS.Requests.Auth
         public string? Password { get; set; }
     
         public UserType? RegisterAs { get; set; }
-        public string? HouseType { get; set; }
+		public PropertyType? HouseType { get; set; }
         public string? MeterNumber { get; set; } 
          public Guid  EstateId { get; set; }
 

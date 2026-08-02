@@ -11,6 +11,7 @@ namespace UserService.API.Controllers;
 
 [ApiController]
 [Route("api/resident")]
+[Authorize(Roles = "Resident")]
 public class ResidentController(IMediator mediator, UserDbContext dbContext) : ControllerBase
 {
 	private readonly IMediator _mediator = mediator;

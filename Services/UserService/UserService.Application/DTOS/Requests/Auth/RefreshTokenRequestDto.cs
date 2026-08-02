@@ -1,5 +1,5 @@
 ﻿namespace UserService.Application.DTOs.Requests.Auth;
 
-public record ForgotPasswordRequestDto(
-	string Email
+public record RefreshTokenRequestDto(
+	string RefreshToken
 );

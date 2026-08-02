@@ -1,4 +1,4 @@
-﻿namespace UserService.Application.Enums;
+﻿namespace UserService.Domain.Enums;
 
 public enum UserType
 {

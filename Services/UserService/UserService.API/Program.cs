@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
+using UserService.API.Middleware;
 using UserService.Application.Commands.Auth;
 using UserService.Domain.Entities;
 using UserService.Infrastructure.Data;
@@ -148,7 +149,7 @@ app.UseCors("AllowAll");
 // 4. Auth
 app.UseAuthentication();
 app.UseAuthorization();
-
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 // 5. Controllers
 app.MapControllers();
 

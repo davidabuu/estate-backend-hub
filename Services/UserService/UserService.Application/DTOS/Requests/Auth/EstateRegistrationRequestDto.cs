@@ -1,4 +1,5 @@
 ﻿using UserService.Application.Enums;
+using UserService.Domain.Enums;
 
 namespace UserService.Application.DTOS.Requests.Auth
 {
@@ -11,7 +12,7 @@ namespace UserService.Application.DTOS.Requests.Auth
         public string? PhoneNumber { get; set; }
         
         public string? Password { get; set; }
-		public string? ConfirmPassword { get; set; }
+	
 
 		public UserType? RegisterAs { get; set; }
       public string? EstateAddress { get; set; }
