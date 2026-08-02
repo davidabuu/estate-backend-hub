@@ -1,6 +1,6 @@
 ﻿using MediatR;
 using Microsoft.AspNetCore.Http;
-using UserService.Application.DTOs.Responses.Resident;
+using UserService.Application.DTOS.Responses.Residents;
 
 
 namespace UserService.Application.Commands.Resident;

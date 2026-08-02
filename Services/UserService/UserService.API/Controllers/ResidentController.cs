@@ -31,7 +31,7 @@ public class ResidentController(IMediator mediator, UserDbContext dbContext) : C
 			PhoneNumber: request.PhoneNumber!,
 			Password: request.Password!,
 			RegisterAs:"Resident",
-			HouseType: request.HouseType!,
+			PropertyType: request.PropertyType!,
 			MeterNumber: request.MeterNumber!,
 			HouseAddress: request.HouseAddress!,
 			EstateId: request.EstateId

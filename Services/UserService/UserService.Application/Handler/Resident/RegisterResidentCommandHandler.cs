@@ -73,7 +73,7 @@ public class RegisterResidentCommandHandler : IRequestHandler<RegisterResidentCo
 			LastName = command.LastName,
 			Email = command.Email,
 			PhoneNumber = command.PhoneNumber,
-			HouseType = command.HouseType,
+			PropertyType = command.PropertyType,
 			MeterNumber = command.MeterNumber,
 			HouseAddress = command.HouseAddress,
 			IsActive = true,

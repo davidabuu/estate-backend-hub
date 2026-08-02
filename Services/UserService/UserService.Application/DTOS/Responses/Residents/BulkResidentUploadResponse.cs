@@ -1,4 +1,4 @@
-﻿namespace UserService.Application.DTOs.Responses.Resident;
+﻿namespace UserService.Application.DTOS.Responses.Residents;
 
 public record BulkResidentUploadResponse(
 	int TotalRecords,

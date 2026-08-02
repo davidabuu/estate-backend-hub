@@ -12,7 +12,7 @@ public record RegisterResidentCommand(
 	string PhoneNumber,
 	string Password,
 	string RegisterAs,
-	string HouseType,
+	PropertyType PropertyType,
 	string MeterNumber,
 	string HouseAddress,
 	Guid EstateId
