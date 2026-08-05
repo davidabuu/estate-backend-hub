@@ -1,4 +1,6 @@
-﻿using UserService.Application.Enums;
+﻿
+
+using PaymentService.Domain.Enums;
 
 namespace EstateHub.Contracts.Events;
 

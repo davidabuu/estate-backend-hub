@@ -6,4 +6,15 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="MediatR" Version="12.4.1" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Abstractions" Version="8.0.10" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PaymentService.Domain\PaymentService.Domain.csproj" />
+    <ProjectReference Include="..\PaymentService.Infrastructure\PaymentService.Infrastructure.csproj" />
+  </ItemGroup>
+
 </Project>
