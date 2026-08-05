@@ -12,18 +12,20 @@ using UserService.Infrastructure.Service;
 
 var builder = WebApplication.CreateBuilder(args);
 
-
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 builder.Services.AddDbContext<UserDbContext>(options =>
 	options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))
 );
+
+// ✅ Swagger Configuration - Moved BEFORE Identity
 builder.Services.AddSwaggerGen(options =>
 {
 	options.SwaggerDoc("v1", new OpenApiInfo
 	{
 		Title = "UserService API",
-		Version = "v1"
+		Version = "v1",
+		Description = "EstateHub User Service - Authentication & User Management"
 	});
 
 	options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -51,6 +53,7 @@ builder.Services.AddSwaggerGen(options =>
 		}
 	});
 });
+
 // 2. Identity
 builder.Services
 	.AddIdentity<ApplicationUser, IdentityRole<Guid>>(options =>
@@ -64,7 +67,7 @@ builder.Services
 	.AddEntityFrameworkStores<UserDbContext>()
 	.AddDefaultTokenProviders();
 
-// 3. CORS (Define the policy, don't use it yet)
+// 3. CORS
 builder.Services.AddCors(options =>
 {
 	options.AddPolicy("AllowAll",
@@ -79,8 +82,8 @@ builder.Services.AddCors(options =>
 // 4. MediatR
 builder.Services.AddMediatR(cfg =>
 {
-	cfg.RegisterServicesFromAssembly(typeof(Program).Assembly);           // API assembly
-	cfg.RegisterServicesFromAssembly(typeof(RegisterAdminCommand).Assembly); // Application assembly
+	cfg.RegisterServicesFromAssembly(typeof(Program).Assembly);
+	cfg.RegisterServicesFromAssembly(typeof(RegisterAdminCommand).Assembly);
 });
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 
@@ -106,51 +109,41 @@ builder.Services.AddAuthentication(options =>
 	{
 		ValidateIssuer = true,
 		ValidIssuer = jwtIssuer,
-
 		ValidateAudience = true,
 		ValidAudience = jwtAudience,
-
 		ValidateIssuerSigningKey = true,
 		IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecretKey)),
-
 		ValidateLifetime = true,
 		ClockSkew = TimeSpan.FromMinutes(1)
 	};
 });
 
 builder.Services.AddAuthorization();
-
-// 6. Controllers
 builder.Services.AddControllers();
-
-// 7. Swagger
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
 // ---------------------------------------------------------
-// MIDDLEWARE PIPELINE (Order Matters!)
+// MIDDLEWARE PIPELINE
 // ---------------------------------------------------------
 
-// 1. Swagger (Development only)
-if (app.Environment.IsDevelopment())
+// ✅ ENABLE SWAGGER FOR ALL ENVIRONMENTS!
+app.UseSwagger();
+app.UseSwaggerUI(options =>
 {
-	app.UseSwagger();
-	app.UseSwaggerUI();
-}
+	options.SwaggerEndpoint("/swagger/v1/swagger.json", "UserService API v1");
+	options.RoutePrefix = "swagger";  // Swagger at /swagger
+});
 
-// 2. HTTPS
+// Add a root endpoint so the base URL shows something
+app.MapGet("/", () => Results.Redirect("/swagger"));
+
 app.UseHttpsRedirection();
-
-// 3. CORS - ❗ ONLY CALLED ONCE, before Auth
 app.UseCors("AllowAll");
-
-// 4. Auth
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
-// 5. Controllers
 app.MapControllers();
 
 // ---------------------------------------------------------
