@@ -1,9 +1,10 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using PaymentService.Application.Interface;
-using PaymentService.Application.Services;
+using Microsoft.OpenApi.Models;
+using PaymentService.Application.Interfaces;
 using PaymentService.Infrastructure.Data;
+using PaymentService.Infrastructure.Services;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -20,16 +21,14 @@ builder.Services.AddDbContext<PaymentDbContext>(options =>
 	options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))
 );
 
-
-
 // ==========================================
-// 4. Services
+// 3. Services
 // ==========================================
 builder.Services.AddScoped<IPaystackService, PaystackService>();
 builder.Services.AddScoped<IIdempotencyService, IdempotencyService>();
 
 // ==========================================
-// 5. MediatR (CQRS)
+// 4. MediatR (CQRS)
 // ==========================================
 builder.Services.AddMediatR(cfg =>
 {
@@ -37,46 +36,90 @@ builder.Services.AddMediatR(cfg =>
 });
 
 // ==========================================
-// 6. JWT Authentication
+// 5. JWT Authentication
 // ==========================================
+var jwtSecretKey = builder.Configuration["Jwt:SecretKey"];
+var jwtIssuer = builder.Configuration["Jwt:Issuer"];
+var jwtAudience = builder.Configuration["Jwt:Audience"];
+
+if (string.IsNullOrEmpty(jwtSecretKey))
+{
+	throw new InvalidOperationException(
+		"Jwt:SecretKey is missing. Set it via appsettings, environment variable (Jwt__SecretKey), or Render secret.");
+}
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 	.AddJwtBearer(options =>
 	{
 		options.TokenValidationParameters = new TokenValidationParameters
 		{
 			ValidateIssuer = true,
+			ValidIssuer = jwtIssuer,
+
 			ValidateAudience = true,
-			ValidateLifetime = true,
+			ValidAudience = jwtAudience,
+
 			ValidateIssuerSigningKey = true,
-			ValidIssuer = builder.Configuration["Jwt:Issuer"],
-			ValidAudience = builder.Configuration["Jwt:Audience"],
 			IssuerSigningKey = new SymmetricSecurityKey(
-				Encoding.UTF8.GetBytes(builder.Configuration["Jwt:SecretKey"]!)
-			)
+				Encoding.UTF8.GetBytes(jwtSecretKey)
+			),
+
+			ValidateLifetime = true,
+			ClockSkew = TimeSpan.FromMinutes(1)
 		};
 	});
 
 // ==========================================
-// 7. Authorization
+// 6. Authorization
 // ==========================================
 builder.Services.AddAuthorization();
 
 // ==========================================
-// 8. Controllers
+// 7. Controllers
 // ==========================================
 builder.Services.AddControllers();
 
 // ==========================================
-// 9. Swagger
+// 8. Swagger with JWT Support
 // ==========================================
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+	options.SwaggerDoc("v1", new OpenApiInfo
+	{
+		Title = "PaymentService API",
+		Version = "v1",
+		Description = "EstateHub Payment Service - Paystack Integration"
+	});
+
+	options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+	{
+		Name = "Authorization",
+		Type = SecuritySchemeType.Http,
+		Scheme = "bearer",
+		BearerFormat = "JWT",
+		In = ParameterLocation.Header,
+		Description = "Enter your JWT token below (no need to type 'Bearer ')."
+	});
+
+	options.AddSecurityRequirement(new OpenApiSecurityRequirement
+	{
+		{
+			new OpenApiSecurityScheme
+			{
+				Reference = new OpenApiReference
+				{
+					Type = ReferenceType.SecurityScheme,
+					Id = "Bearer"
+				}
+			},
+			Array.Empty<string>()
+		}
+	});
+});
 
 // ==========================================
-
-
-// ==========================================
-// 11. CORS
+// 9. CORS
 // ==========================================
 builder.Services.AddCors(options =>
 {
@@ -88,12 +131,12 @@ builder.Services.AddCors(options =>
 });
 
 // ==========================================
-// 12. Background Service for Idempotency Cleanup
+// 10. Background Service for Idempotency Cleanup
 // ==========================================
 builder.Services.AddHostedService<IdempotencyCleanupService>();
 
 // ==========================================
-// 13. HTTP Client for Paystack
+// 11. HTTP Client for Paystack
 // ==========================================
 builder.Services.AddHttpClient<IPaystackService, PaystackService>(client =>
 {
@@ -102,28 +145,34 @@ builder.Services.AddHttpClient<IPaystackService, PaystackService>(client =>
 });
 
 // ==========================================
+// 12. Health Checks
+// ==========================================
+builder.Services.AddHealthChecks()
+	.AddDbContextCheck<PaymentDbContext>()
+	.AddUrlGroup(new Uri("https://api.paystack.co"), "Paystack API");
+
+// ==========================================
 // Build App
 // ==========================================
 var app = builder.Build();
 
 // ==========================================
-// Configure Middleware Pipeline
+// Middleware Pipeline
 // ==========================================
 
-// Swagger (Development only)
-if (app.Environment.IsDevelopment())
+// ✅ ENABLE SWAGGER FOR ALL ENVIRONMENTS!
+app.UseSwagger();
+app.UseSwaggerUI(options =>
 {
-	app.UseSwagger();
-	app.UseSwaggerUI();
-}
+	options.SwaggerEndpoint("/swagger/v1/swagger.json", "PaymentService API v1");
+	options.RoutePrefix = "swagger";
+});
 
-// HTTPS Redirection
+// ✅ Root endpoint redirects to Swagger
+app.MapGet("/", () => Results.Redirect("/swagger"));
+
 app.UseHttpsRedirection();
-
-// CORS
 app.UseCors("AllowAll");
-
-// Authentication & Authorization
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -139,10 +188,13 @@ app.MapControllers();
 using (var scope = app.Services.CreateScope())
 {
 	var dbContext = scope.ServiceProvider.GetRequiredService<PaymentDbContext>();
+	Console.WriteLine("📦 Applying database migrations...");
 	await dbContext.Database.MigrateAsync();
+	Console.WriteLine("✅ Database migrations applied successfully!");
 }
 
 // ==========================================
 // Run App
 // ==========================================
+Console.WriteLine("✅ PaymentService is ready!");
 app.Run();
