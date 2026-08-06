@@ -1,4 +1,4 @@
-﻿using MediatR;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -11,57 +11,59 @@ namespace UserService.API.Controllers;
 
 [ApiController]
 [Route("api/resident")]
-[Authorize(Roles = "Resident")]
-public class ResidentController(IMediator mediator, UserDbContext dbContext) : ControllerBase
+[Authorize(Roles = "EstateManager, Resident")]  // ✅ Both roles can access
+public class ResidentController : ControllerBase
 {
-	private readonly IMediator _mediator = mediator;
-	private readonly UserDbContext _dbContext = dbContext;
+    private readonly IMediator _mediator;
+    private readonly UserDbContext _dbContext;
 
+    public ResidentController(IMediator mediator, UserDbContext dbContext)
+    {
+        _mediator = mediator;
+        _dbContext = dbContext;
+    }
 
+    [HttpPost("register")]
+    [Authorize(Roles = "EstateManager")]  // ✅ Only EstateManager can register residents
+    public async Task<IActionResult> Register([FromBody] ResidentRegistrationRequestDto request)
+    {
+        var command = new RegisterResidentCommand(
+            FirstName: request.FirstName!,
+            LastName: request.LastName!,
+            Email: request.Email!,
+            PhoneNumber: request.PhoneNumber!,
+            Password: request.Password!,
+            RegisterAs: "Resident",
+            PropertyType: request.PropertyType!,
+            MeterNumber: request.MeterNumber!,
+            HouseAddress: request.HouseAddress!,
+            EstateId: request.EstateId
+        );
 
+        var result = await _mediator.Send(command);
+        return Ok(result);
+    }
 
-	[HttpPost("register")]
-	[Authorize(Roles = "EstateManager")]
-	public async Task<IActionResult> Register([FromBody] ResidentRegistrationRequestDto request)
-	{
-		var command = new RegisterResidentCommand(
-			FirstName: request.FirstName!,
-			LastName: request.LastName!,
-			Email: request.Email!,
-			PhoneNumber: request.PhoneNumber!,
-			Password: request.Password!,
-			RegisterAs:"Resident",
-			PropertyType: request.PropertyType!,
-			MeterNumber: request.MeterNumber!,
-			HouseAddress: request.HouseAddress!,
-			EstateId: request.EstateId
-		);
+    [HttpGet("my-dues")]
+    [Authorize(Roles = "Resident")]  // ✅ Only Residents can view their dues
+    public async Task<IActionResult> GetMyDues()
+    {
+        var userId = User.FindFirst("userId")?.Value;
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized("User not found");
+        }
 
-		var result = await _mediator.Send(command);
-		return Ok(result);
-	}
+        var resident = await _dbContext.ResidentRegistrations
+            .FirstOrDefaultAsync(r => r.UserId == Guid.Parse(userId));
 
-	[HttpGet("my-dues")]
-	public async Task<IActionResult> GetMyDues()
-	{
-		// Get UserId from JWT token
-		var userId = User.FindFirst("userId")?.Value;
-		if (string.IsNullOrEmpty(userId))
-		{
-			return Unauthorized("User not found");
-		}
+        if (resident == null)
+        {
+            return NotFound("Resident not found");
+        }
 
-		// Get ResidentId from UserId
-		var resident = await _dbContext.ResidentRegistration
-			.FirstOrDefaultAsync(r => r.UserId == Guid.Parse(userId));
-
-		if (resident == null)
-		{
-			return NotFound("Resident not found");
-		}
-
-		var query = new GetResidentDuesQuery(resident.Id);
-		var result = await _mediator.Send(query);
-		return Ok(result);
-	}
+        var query = new GetResidentDuesQuery(resident.Id);
+        var result = await _mediator.Send(query);
+        return Ok(result);
+    }
 }
