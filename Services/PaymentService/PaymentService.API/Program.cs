@@ -2,9 +2,10 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using PaymentService.Application.Interfaces;
+using PaymentService.Application.Interface;
+using PaymentService.Application.Services;
 using PaymentService.Infrastructure.Data;
-using PaymentService.Infrastructure.Services;
+
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -147,9 +148,7 @@ builder.Services.AddHttpClient<IPaystackService, PaystackService>(client =>
 // ==========================================
 // 12. Health Checks
 // ==========================================
-builder.Services.AddHealthChecks()
-	.AddDbContextCheck<PaymentDbContext>()
-	.AddUrlGroup(new Uri("https://api.paystack.co"), "Paystack API");
+
 
 // ==========================================
 // Build App
