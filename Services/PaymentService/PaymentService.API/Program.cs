@@ -175,8 +175,7 @@ app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Health Checks
-app.MapHealthChecks("/health");
+// Health Che
 
 // Controllers
 app.MapControllers();
