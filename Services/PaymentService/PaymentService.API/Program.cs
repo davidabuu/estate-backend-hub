@@ -1,7 +1,9 @@
+using MassTransit;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using PaymentService.Application.Consumers;
 using PaymentService.Application.Interface;
 using PaymentService.Application.Services;
 using PaymentService.Infrastructure.Data;
@@ -130,7 +132,25 @@ builder.Services.AddCors(options =>
 			.AllowAnyMethod()
 			.AllowAnyHeader());
 });
+builder.Services.AddMassTransit(x =>
+{
+	// ✅ Register the consumer
+	x.AddConsumer<ResidentDueCreatedConsumer>();
 
+	x.UsingRabbitMq((ctx, cfg) =>
+	{
+		var host = builder.Configuration["MessageBroker:Host"];
+		cfg.Host(new Uri(host), h => { });
+
+		// ✅ Configure receive endpoint
+		cfg.ReceiveEndpoint("resident-due-created", e =>
+		{
+			e.ConfigureConsumer<ResidentDueCreatedConsumer>(ctx);
+		});
+	});
+});
+
+builder.Services.AddMassTransitHostedService();
 // ==========================================
 // 10. Background Service for Idempotency Cleanup
 // ==========================================

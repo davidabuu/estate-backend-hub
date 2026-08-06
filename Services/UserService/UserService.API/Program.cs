@@ -1,3 +1,4 @@
+using MassTransit;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -6,19 +7,25 @@ using Microsoft.OpenApi.Models;
 using System.Text;
 using UserService.API.Middleware;
 using UserService.Application.Commands.Auth;
+using UserService.Application.Consumers;
 using UserService.Domain.Entities;
 using UserService.Infrastructure.Data;
 using UserService.Infrastructure.Service;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// ==========================================
+// 1. Database Context
+// ==========================================
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 builder.Services.AddDbContext<UserDbContext>(options =>
 	options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))
 );
 
-// ✅ Swagger Configuration - Moved BEFORE Identity
+// ==========================================
+// 2. Swagger Configuration
+// ==========================================
 builder.Services.AddSwaggerGen(options =>
 {
 	options.SwaggerDoc("v1", new OpenApiInfo
@@ -54,7 +61,9 @@ builder.Services.AddSwaggerGen(options =>
 	});
 });
 
-// 2. Identity
+// ==========================================
+// 3. Identity
+// ==========================================
 builder.Services
 	.AddIdentity<ApplicationUser, IdentityRole<Guid>>(options =>
 	{
@@ -67,7 +76,9 @@ builder.Services
 	.AddEntityFrameworkStores<UserDbContext>()
 	.AddDefaultTokenProviders();
 
-// 3. CORS
+// ==========================================
+// 4. CORS
+// ==========================================
 builder.Services.AddCors(options =>
 {
 	options.AddPolicy("AllowAll",
@@ -79,7 +90,9 @@ builder.Services.AddCors(options =>
 		});
 });
 
-// 4. MediatR
+// ==========================================
+// 5. MediatR
+// ==========================================
 builder.Services.AddMediatR(cfg =>
 {
 	cfg.RegisterServicesFromAssembly(typeof(Program).Assembly);
@@ -87,7 +100,9 @@ builder.Services.AddMediatR(cfg =>
 });
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 
-// 5. JWT Authentication
+// ==========================================
+// 6. JWT Authentication
+// ==========================================
 var jwtSecretKey = builder.Configuration["Jwt:SecretKey"];
 var jwtIssuer = builder.Configuration["Jwt:Issuer"];
 var jwtAudience = builder.Configuration["Jwt:Audience"];
@@ -119,24 +134,56 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddAuthorization();
+
+// ==========================================
+// 7. MassTransit (RabbitMQ) - ✅ NEW
+// ==========================================
+builder.Services.AddMassTransit(x =>
+{
+	// ✅ Register the consumer
+	x.AddConsumer<PaymentProcessedConsumer>();
+
+	x.UsingRabbitMq((ctx, cfg) =>
+	{
+		var host = builder.Configuration["MessageBroker:Host"];
+		cfg.Host(new Uri(host), h => { });
+
+		// ✅ Configure receive endpoint
+		cfg.ReceiveEndpoint("payment-processed", e =>
+		{
+			e.ConfigureConsumer<PaymentProcessedConsumer>(ctx);
+		});
+	});
+});
+
+
+
+builder.Services.AddMassTransitHostedService();
+
+// ==========================================
+// 8. Controllers
+// ==========================================
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
+// ==========================================
+// Build App
+// ==========================================
 var app = builder.Build();
 
-// ---------------------------------------------------------
-// MIDDLEWARE PIPELINE
-// ---------------------------------------------------------
+// ==========================================
+// Middleware Pipeline
+// ==========================================
 
-// ✅ ENABLE SWAGGER FOR ALL ENVIRONMENTS!
+// Swagger
 app.UseSwagger();
 app.UseSwaggerUI(options =>
 {
 	options.SwaggerEndpoint("/swagger/v1/swagger.json", "UserService API v1");
-	options.RoutePrefix = "swagger";  // Swagger at /swagger
+	options.RoutePrefix = "swagger";
 });
 
-// Add a root endpoint so the base URL shows something
+// Root redirect
 app.MapGet("/", () => Results.Redirect("/swagger"));
 
 app.UseHttpsRedirection();
@@ -146,9 +193,9 @@ app.UseAuthorization();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.MapControllers();
 
-// ---------------------------------------------------------
+// ==========================================
 // Role Seeding
-// ---------------------------------------------------------
+// ==========================================
 using (var scope = app.Services.CreateScope())
 {
 	var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<Guid>>>();

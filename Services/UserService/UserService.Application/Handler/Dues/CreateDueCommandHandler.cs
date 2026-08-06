@@ -1,5 +1,8 @@
-﻿using MediatR;
+﻿using EstateHub.Contracts.Events;
+using MassTransit;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using UserService.Application.Commands.Dues;
 using UserService.Application.DTOs.Responses.Dues;
 using UserService.Domain.Entities;
@@ -8,13 +11,25 @@ using UserService.Infrastructure.Data;
 
 namespace UserService.Application.Handlers.Dues;
 
-public class CreateDueCommandHandler(UserDbContext dbContext) : IRequestHandler<CreateDueCommand, CreateDueResponse>
+public class CreateDueCommandHandler : IRequestHandler<CreateDueCommand, CreateDueResponse>
 {
-	private readonly UserDbContext _dbContext = dbContext;
+	private readonly UserDbContext _dbContext;
+	private readonly IPublishEndpoint _publishEndpoint;
+	private readonly ILogger<CreateDueCommandHandler> _logger;
+
+	public CreateDueCommandHandler(
+		UserDbContext dbContext,
+		IPublishEndpoint publishEndpoint,
+		ILogger<CreateDueCommandHandler> logger)
+	{
+		_dbContext = dbContext;
+		_publishEndpoint = publishEndpoint;
+		_logger = logger;
+	}
 
 	public async Task<CreateDueResponse> Handle(CreateDueCommand command, CancellationToken ct)
 	{
-		
+		// 1. Check if Estate exists
 		var estate = await _dbContext.EstateRegistration
 			.FirstOrDefaultAsync(e => e.Id == command.EstateId, ct);
 
@@ -62,13 +77,12 @@ public class CreateDueCommandHandler(UserDbContext dbContext) : IRequestHandler<
 		await _dbContext.EstateDue.AddAsync(estateDue, ct);
 		await _dbContext.SaveChangesAsync(ct);
 
-	
+		// 6. Create ResidentDues for EACH Resident
 		var residentDues = new List<ResidentDues>();
 		var residentsWithoutAmount = new List<string>();
 
 		foreach (var resident in residents)
 		{
-		
 			var propertyType = resident.PropertyType;
 
 			if (!command.PropertyTypeAmounts.TryGetValue(propertyType, out var amount))
@@ -87,7 +101,7 @@ public class CreateDueCommandHandler(UserDbContext dbContext) : IRequestHandler<
 				Amount = amount,
 				DueType = command.DueType,
 				DueDate = command.DueDate,
-				PropertyType = resident.PropertyType, 
+				PropertyType = resident.PropertyType,
 				Status = DueStatus.Pending,
 				IsPaid = false,
 				CreatedAt = DateTime.UtcNow
@@ -103,7 +117,22 @@ public class CreateDueCommandHandler(UserDbContext dbContext) : IRequestHandler<
 			await _dbContext.SaveChangesAsync(ct);
 		}
 
-		// 8. Return Response
+		// 8. ✅ Publish event for each resident due created
+		foreach (var residentDue in residentDues)
+		{
+			await _publishEndpoint.Publish(new ResidentDueCreatedEvent(
+				ResidentDueId: residentDue.Id,
+				UserId: residentDue.ResidentId,  // You may need to include UserId in ResidentDue entity
+				EstateId: command.EstateId,
+				Amount: residentDue.Amount,
+				DueName: residentDue.DueName!,
+				DueDate: residentDue.DueDate
+			), ct);
+
+			_logger.LogInformation("📤 Published ResidentDueCreatedEvent for {ResidentDueId}", residentDue.Id);
+		}
+
+		// 9. Return Response
 		var warningMessage = residentsWithoutAmount.Count > 0
 			? $"Warning: {residentsWithoutAmount.Count} residents have no amount set for their property type: {string.Join(", ", residentsWithoutAmount)}"
 			: null;

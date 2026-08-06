@@ -1,13 +1,10 @@
-﻿
-
-using PaymentService.Domain.Enums;
-
-namespace EstateHub.Contracts.Events;
+﻿namespace EstateHub.Contracts.Events;
 
 public record PaymentProcessedEvent(
 	Guid PaymentId,
 	Guid UserId,
+	Guid ResidentDueId,
 	decimal Amount,
-	PaymentStatus Status,
+	string Reference,
 	DateTime ProcessedAt
 );

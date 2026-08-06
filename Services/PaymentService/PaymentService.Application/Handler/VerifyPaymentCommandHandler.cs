@@ -1,27 +1,35 @@
-﻿using MediatR;
+﻿using EstateHub.Contracts.Events;
+using MassTransit;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using PaymentService.Application.Command;
+
 using PaymentService.Application.DTO.Responses;
+
 using PaymentService.Application.Interface;
+
 using PaymentService.Domain.Enums;
 using PaymentService.Infrastructure.Data;
 
-namespace PaymentService.Application.Handler;
+namespace PaymentService.Application.Handlers;
 
 public class VerifyPaymentCommandHandler : IRequestHandler<VerifyPaymentCommand, VerifyPaymentResponseDto>
 {
 	private readonly PaymentDbContext _dbContext;
 	private readonly IPaystackService _paystackService;
+	private readonly IPublishEndpoint _publishEndpoint;
 	private readonly ILogger<VerifyPaymentCommandHandler> _logger;
 
 	public VerifyPaymentCommandHandler(
 		PaymentDbContext dbContext,
 		IPaystackService paystackService,
+		IPublishEndpoint publishEndpoint,
 		ILogger<VerifyPaymentCommandHandler> logger)
 	{
 		_dbContext = dbContext;
 		_paystackService = paystackService;
+		_publishEndpoint = publishEndpoint;
 		_logger = logger;
 	}
 
@@ -78,9 +86,24 @@ public class VerifyPaymentCommandHandler : IRequestHandler<VerifyPaymentCommand,
 		payment.UpdatedAt = DateTime.UtcNow;
 		await _dbContext.SaveChangesAsync(ct);
 
+		// 4. ✅ If payment was successful, publish event
+		if (payment.Status == PaymentStatus.Success)
+		{
+			await _publishEndpoint.Publish(new PaymentProcessedEvent(
+				PaymentId: payment.Id,
+				UserId: payment.UserId,
+				ResidentDueId: payment.ResidentDueId ?? Guid.Empty,
+				Amount: payment.Amount,
+				Reference: payment.Reference!,
+				ProcessedAt: DateTime.UtcNow
+			), ct);
+
+			_logger.LogInformation("📤 Published PaymentProcessedEvent for Payment {PaymentId}", payment.Id);
+		}
+
 		return new VerifyPaymentResponseDto(
 			PaymentId: payment.Id,
-			Reference: payment.Reference,
+			Reference: payment.Reference!,
 			Success: payment.Status == PaymentStatus.Success,
 			Status: payment.Status,
 			AmountPaid: payment.AmountPaid,
