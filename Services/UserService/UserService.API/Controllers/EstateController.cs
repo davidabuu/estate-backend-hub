@@ -105,7 +105,26 @@ public class EstateController : ControllerBase
 		var result = await _mediator.Send(command);
 		return Ok(result);
 	}
+	[HttpPost("register-single")]
+	[Authorize(Roles = "EstateManager")]
+	public async Task<IActionResult> Register([FromBody] ResidentRegistrationRequestDto request)
+	{
+		var command = new RegisterResidentCommand(
+			FirstName: request.FirstName!,
+			LastName: request.LastName!,
+			Email: request.Email!,
+			PhoneNumber: request.PhoneNumber!,
+			Password: request.Password!,
+			RegisterAs: "Resident",
+			PropertyType: request.PropertyType!,
+			MeterNumber: request.MeterNumber!,
+			HouseAddress: request.HouseAddress!,
+			EstateId: request.EstateId
+		);
 
+		var result = await _mediator.Send(command);
+		return Ok(result);
+	}
 	[HttpPost("create-due")]
 	[Authorize(Roles = "EstateManager")]
 	public async Task<IActionResult> CreateDue([FromBody] CreateDueRequestDto request)
