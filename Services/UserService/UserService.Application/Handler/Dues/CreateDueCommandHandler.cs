@@ -9,7 +9,7 @@ using UserService.Domain.Entities;
 using UserService.Domain.Enums;
 using UserService.Infrastructure.Data;
 
-namespace UserService.Application.Handlers.Dues;
+namespace UserService.Application.Handler.Dues;
 
 public class CreateDueCommandHandler : IRequestHandler<CreateDueCommand, CreateDueResponse>
 {
