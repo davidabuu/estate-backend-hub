@@ -159,7 +159,17 @@ builder.Services.AddMassTransit(x =>
 
 
 
-builder.Services.AddMassTransitHostedService();
+builder.Services.Configure<MassTransitHostOptions>(options =>
+{
+	options.WaitUntilStarted = true;
+	options.StartTimeout = TimeSpan.FromSeconds(30);
+	options.StopTimeout = TimeSpan.FromSeconds(30);
+});
+
+builder.Services.Configure<HostOptions>(options =>
+{
+	options.ShutdownTimeout = TimeSpan.FromSeconds(30);
+});
 
 // ==========================================
 // 8. Controllers
@@ -190,19 +200,31 @@ app.MapGet("/", () => Results.Redirect("/swagger"));
 // ==========================================
 // Test Endpoint for RabbitMQ
 // ==========================================
-app.MapPost("/test-publish", async (IPublishEndpoint publishEndpoint) =>
+app.MapPost("/test-publish", async (IPublishEndpoint publishEndpoint, ILogger<Program> logger) =>
 {
 	try
 	{
-		await publishEndpoint.Publish(new TestEvent(
+		logger.LogInformation("🚀 Attempting to publish test message...");
+		logger.LogInformation("🔑 Using connection: amqps://lcvhfmio:****@ostrich.lmq.cloudamqp.com/lcvhfmio");
+
+		// Create and publish test event
+		var testEvent = new TestEvent(
 			"Hello from UserService at " + DateTime.UtcNow
-		));
+		);
+
+		logger.LogInformation("📤 Publishing event: {Message}", testEvent.Message);
+
+		await publishEndpoint.Publish(testEvent);
+
+		logger.LogInformation("✅ Publish method completed successfully");
 		return Results.Ok(new { message = "✅ Test message published to RabbitMQ!" });
 	}
 	catch (Exception ex)
 	{
-		return Results.BadRequest(new { error = ex.Message });
+		logger.LogError(ex, "❌ Failed to publish test message");
+		return Results.BadRequest(new { error = ex.Message, stackTrace = ex.StackTrace });
 	}
+
 });
 app.UseHttpsRedirection();
 app.UseCors("AllowAll");

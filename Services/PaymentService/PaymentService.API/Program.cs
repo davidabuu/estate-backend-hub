@@ -161,7 +161,17 @@ builder.Services.AddMassTransit(x =>
 	});
 });
 
-builder.Services.AddMassTransitHostedService();
+builder.Services.Configure<MassTransitHostOptions>(options =>
+{
+	options.WaitUntilStarted = true;
+	options.StartTimeout = TimeSpan.FromSeconds(30);
+	options.StopTimeout = TimeSpan.FromSeconds(30);
+});
+
+builder.Services.Configure<HostOptions>(options =>
+{
+	options.ShutdownTimeout = TimeSpan.FromSeconds(30);
+});
 // ==========================================
 // 10. Background Service for Idempotency Cleanup
 // ==========================================
