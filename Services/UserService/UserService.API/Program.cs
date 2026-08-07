@@ -187,10 +187,22 @@ app.UseSwaggerUI(options =>
 // Root redirect
 app.MapGet("/", () => Results.Redirect("/swagger"));
 // Add a test endpoint to publish a message
+// ==========================================
+// Test Endpoint for RabbitMQ
+// ==========================================
 app.MapPost("/test-publish", async (IPublishEndpoint publishEndpoint) =>
 {
-	await publishEndpoint.Publish(new TestEvent("Hello from UserService"));
-	return Results.Ok(new { message = "Test message published" });
+	try
+	{
+		await publishEndpoint.Publish(new TestEvent(
+			"Hello from UserService at " + DateTime.UtcNow
+		));
+		return Results.Ok(new { message = "✅ Test message published to RabbitMQ!" });
+	}
+	catch (Exception ex)
+	{
+		return Results.BadRequest(new { error = ex.Message });
+	}
 });
 app.UseHttpsRedirection();
 app.UseCors("AllowAll");

@@ -136,18 +136,27 @@ builder.Services.AddCors(options =>
 });
 builder.Services.AddMassTransit(x =>
 {
-	// ✅ Register the consumer
+	// ✅ Existing consumers
 	x.AddConsumer<ResidentDueCreatedConsumer>();
+
+	// ✅ Add the test consumer
+	x.AddConsumer<TestConsumer>();
 
 	x.UsingRabbitMq((ctx, cfg) =>
 	{
 		var host = builder.Configuration["MessageBroker:Host"];
 		cfg.Host(new Uri(host), h => { });
 
-		// ✅ Configure receive endpoint
+		// ✅ Existing receive endpoints
 		cfg.ReceiveEndpoint("resident-due-created", e =>
 		{
 			e.ConfigureConsumer<ResidentDueCreatedConsumer>(ctx);
+		});
+
+		// ✅ Add test receive endpoint
+		cfg.ReceiveEndpoint("test-queue", e =>
+		{
+			e.ConfigureConsumer<TestConsumer>(ctx);
 		});
 	});
 });
