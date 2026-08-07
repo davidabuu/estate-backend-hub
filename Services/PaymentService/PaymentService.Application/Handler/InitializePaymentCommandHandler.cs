@@ -7,6 +7,7 @@ using PaymentService.Application.Interface;
 using PaymentService.Domain.Entities;
 using PaymentService.Domain.Enums;
 using PaymentService.Infrastructure.Data;
+using System.Text.Json;
 
 namespace PaymentService.Application.Handler;
 
@@ -39,7 +40,7 @@ public class InitializePaymentCommandHandler : IRequestHandler<InitializePayment
 
 			if (existingResponse != null)
 			{
-				return System.Text.Json.JsonSerializer.Deserialize<InitializePaymentResponseDto>(existingResponse)!;
+				return JsonSerializer.Deserialize<InitializePaymentResponseDto>(existingResponse)!;
 			}
 
 			throw new Exception("Idempotent request already processed but response not found");
@@ -78,11 +79,31 @@ public class InitializePaymentCommandHandler : IRequestHandler<InitializePayment
 		await _dbContext.SaveChangesAsync(ct);
 
 		// 4. Initialize Paystack payment
+		_logger.LogInformation("📤 Calling Paystack with Email: {Email}, Amount: {Amount}, Reference: {Reference}",
+			residentDue.Email, residentDue.Amount, reference);
+
 		var response = await _paystackService.InitializePaymentAsync(
 			residentDue.Email!,
 			residentDue.Amount,
 			reference
 		);
+
+		// ✅ LOG THE FULL RESPONSE
+		var responseJson = JsonSerializer.Serialize(response);
+		_logger.LogInformation("📥 Full Paystack Response: {Response}", responseJson);
+
+		_logger.LogInformation("📥 Paystack Response Status: {Status}, Message: {Message}",
+			response.Status, response.Message);
+
+		if (response.Data != null)
+		{
+			_logger.LogInformation("📥 Paystack Data - AuthorizationUrl: {AuthUrl}, AccessCode: {AccessCode}, Reference: {Ref}",
+				response.Data.AuthorizationUrl, response.Data.AccessCode, response.Data.Reference);
+		}
+		else
+		{
+			_logger.LogWarning("⚠️ Paystack Data is NULL!");
+		}
 
 		if (!response.Status || response.Data == null)
 		{
@@ -90,7 +111,9 @@ public class InitializePaymentCommandHandler : IRequestHandler<InitializePayment
 			payment.GatewayResponse = response.Message;
 			await _dbContext.SaveChangesAsync(ct);
 
-			throw new Exception(response.Message ?? "Failed to initialize payment");
+			var errorMsg = response.Message ?? "Failed to initialize payment";
+			_logger.LogError("❌ Paystack initialization failed: {Error}", errorMsg);
+			throw new Exception(errorMsg);
 		}
 
 		// 5. Update payment with Paystack data
@@ -114,7 +137,7 @@ public class InitializePaymentCommandHandler : IRequestHandler<InitializePayment
 		// 7. Store idempotency
 		await _idempotencyService.MarkAsProcessedAsync(
 			command.IdempotencyKey,
-			System.Text.Json.JsonSerializer.Serialize(result),
+			JsonSerializer.Serialize(result),
 			ct
 		);
 
