@@ -365,6 +365,9 @@ namespace UserService.Infrastructure.Migrations
                     b.Property<Guid>("EstateDueId")
                         .HasColumnType("char(36)");
 
+                    b.Property<Guid>("EstateId")
+                        .HasColumnType("char(36)");
+
                     b.Property<bool>("IsPaid")
                         .HasColumnType("tinyint(1)");
 
@@ -385,6 +388,9 @@ namespace UserService.Infrastructure.Migrations
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime(6)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("char(36)");
 
                     b.HasKey("Id");
 

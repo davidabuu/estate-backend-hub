@@ -95,8 +95,9 @@ public class CreateDueCommandHandler : IRequestHandler<CreateDueCommand, CreateD
 			var residentDue = new ResidentDues
 			{
 				Id = Guid.NewGuid(),
-				ResidentId = resident.UserId,
-				EstateDueId = estateDue.Id,
+				ResidentId = resident.Id,          
+				UserId = resident.UserId,            
+				EstateId = command.EstateId,        
 				DueName = command.DueName,
 				Description = command.Description,
 				Amount = amount,
@@ -126,7 +127,7 @@ public class CreateDueCommandHandler : IRequestHandler<CreateDueCommand, CreateD
 		{
 			await _publishEndpoint.Publish(new ResidentDueCreatedEvent(
 				ResidentDueId: residentDue.Id,
-				UserId: residentDue.Id,
+				 UserId: residentDue.UserId,
 				EstateId: command.EstateId,
 				Amount: residentDue.Amount,
 				Email: residentDue.Email!, // ✅ Ensure email is always provided

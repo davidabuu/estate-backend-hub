@@ -8,6 +8,9 @@ public class ResidentDues
 	public Guid Id { get; set; }
 	public Guid ResidentId { get; set; }
 	public Guid EstateDueId { get; set; }
+
+	public Guid UserId { get; set; }          
+	public Guid EstateId { get; set; }
 	public string? Email { get; set; }    // For PaymentService to use
 	
 	public string? DueName { get; set; }
