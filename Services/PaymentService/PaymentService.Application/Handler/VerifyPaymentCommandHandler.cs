@@ -6,13 +6,12 @@ using Microsoft.Extensions.Logging;
 using PaymentService.Application.Command;
 
 using PaymentService.Application.DTO.Responses;
-
 using PaymentService.Application.Interface;
 
 using PaymentService.Domain.Enums;
 using PaymentService.Infrastructure.Data;
 
-namespace PaymentService.Application.Handlers;
+namespace PaymentService.Application.Handler;
 
 public class VerifyPaymentCommandHandler : IRequestHandler<VerifyPaymentCommand, VerifyPaymentResponseDto>
 {

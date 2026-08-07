@@ -16,6 +16,7 @@ COPY ["Services/PaymentService/PaymentService.API/PaymentService.API.csproj", "S
 COPY ["Services/PaymentService/PaymentService.Application/PaymentService.Application.csproj", "Services/PaymentService/PaymentService.Application/"]
 COPY ["Services/PaymentService/PaymentService.Domain/PaymentService.Domain.csproj", "Services/PaymentService/PaymentService.Domain/"]
 COPY ["Services/PaymentService/PaymentService.Infrastructure/PaymentService.Infrastructure.csproj", "Services/PaymentService/PaymentService.Infrastructure/"]
+COPY ["Shared/EstateHub.Contracts/EstateHub.Contracts.csproj", "Shared/EstateHub.Contracts/"]
 RUN dotnet restore "./Services/PaymentService/PaymentService.API/PaymentService.API.csproj"
 COPY . .
 WORKDIR "/src/Services/PaymentService/PaymentService.API"
