@@ -1,12 +1,11 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using PaymentService.Application.Interface;
-
 using PaymentService.Application.Model;
 using System.Text;
 using System.Text.Json;
 
-namespace PaymentService.Application.Services;
+namespace PaymentService.Infrastructure.Services;
 
 public class PaystackService : IPaystackService
 {
@@ -41,6 +40,9 @@ public class PaystackService : IPaystackService
 				callback_url = callbackUrl
 			};
 
+			var requestJson = JsonSerializer.Serialize(request);
+			_logger.LogInformation("📤 Paystack Request: {Request}", requestJson);
+
 			var content = new StringContent(
 				JsonSerializer.Serialize(request),
 				Encoding.UTF8,
@@ -53,29 +55,52 @@ public class PaystackService : IPaystackService
 			var response = await _httpClient.PostAsync("/transaction/initialize", content);
 
 			var responseContent = await response.Content.ReadAsStringAsync();
+			_logger.LogInformation("📥 Paystack Raw Response: {Response}", responseContent);
 
 			if (!response.IsSuccessStatusCode)
 			{
-				_logger.LogError("Paystack error: {StatusCode} - {Response}", response.StatusCode, responseContent);
+				_logger.LogError("❌ Paystack error: {StatusCode} - {Response}", response.StatusCode, responseContent);
 				throw new Exception($"Paystack error: {responseContent}");
 			}
 
+			// ✅ FIX: Use SnakeCaseLower naming policy for Paystack's snake_case response
+			var options = new JsonSerializerOptions
+			{
+				PropertyNameCaseInsensitive = true,
+				PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower  // ← KEY FIX!
+			};
+
 			var result = JsonSerializer.Deserialize<PaystackResponse<InitializePaymentData>>(
 				responseContent,
-				new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+				options
 			);
 
-			if (result == null || !result.Status)
+			if (result == null)
 			{
-				_logger.LogError("Paystack initialization failed: {Message}", result?.Message);
-				throw new Exception(result?.Message ?? "Failed to initialize payment");
+				_logger.LogError("❌ Failed to deserialize Paystack response");
+				throw new Exception("Failed to parse Paystack response");
 			}
+
+			if (!result.Status)
+			{
+				_logger.LogError("❌ Paystack initialization failed: {Message}", result.Message);
+				throw new Exception(result.Message ?? "Failed to initialize payment");
+			}
+
+			if (result.Data == null)
+			{
+				_logger.LogError("❌ Paystack Data is NULL");
+				throw new Exception("Paystack returned null data");
+			}
+
+			_logger.LogInformation("✅ Paystack Success - AuthUrl: {AuthUrl}, AccessCode: {AccessCode}",
+				result.Data.AuthorizationUrl, result.Data.AccessCode);
 
 			return result;
 		}
 		catch (Exception ex)
 		{
-			_logger.LogError(ex, "Error initializing Paystack payment");
+			_logger.LogError(ex, "❌ Error initializing Paystack payment");
 			throw;
 		}
 	}
@@ -84,22 +109,32 @@ public class PaystackService : IPaystackService
 	{
 		try
 		{
+			_logger.LogInformation("🔍 Verifying payment with reference: {Reference}", reference);
+
 			_httpClient.DefaultRequestHeaders.Clear();
 			_httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_secretKey}");
 
 			var response = await _httpClient.GetAsync($"/transaction/verify/{reference}");
 
 			var responseContent = await response.Content.ReadAsStringAsync();
+			_logger.LogInformation("📥 Paystack Verify Response: {Response}", responseContent);
 
 			if (!response.IsSuccessStatusCode)
 			{
-				_logger.LogError("Paystack verify error: {StatusCode} - {Response}", response.StatusCode, responseContent);
+				_logger.LogError("❌ Paystack verify error: {StatusCode} - {Response}", response.StatusCode, responseContent);
 				throw new Exception($"Paystack verify error: {responseContent}");
 			}
 
+			// ✅ Use the same options for verify
+			var options = new JsonSerializerOptions
+			{
+				PropertyNameCaseInsensitive = true,
+				PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
+			};
+
 			var result = JsonSerializer.Deserialize<PaystackResponse<VerifyPaymentData>>(
 				responseContent,
-				new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+				options
 			);
 
 			if (result == null)
@@ -107,11 +142,13 @@ public class PaystackService : IPaystackService
 				throw new Exception("Failed to parse Paystack response");
 			}
 
+			_logger.LogInformation("✅ Payment verification status: {Status}", result.Status);
+
 			return result;
 		}
 		catch (Exception ex)
 		{
-			_logger.LogError(ex, "Error verifying Paystack payment for reference: {Reference}", reference);
+			_logger.LogError(ex, "❌ Error verifying Paystack payment for reference: {Reference}", reference);
 			throw;
 		}
 	}
@@ -125,15 +162,19 @@ public class PaystackService : IPaystackService
 
 			if (!isValid)
 			{
-				_logger.LogWarning("Invalid webhook signature. Expected: {Expected}, Received: {Received}",
+				_logger.LogWarning("⚠️ Invalid webhook signature. Expected: {Expected}, Received: {Received}",
 					expectedSignature, signature);
+			}
+			else
+			{
+				_logger.LogInformation("✅ Webhook signature verified");
 			}
 
 			return isValid;
 		}
 		catch (Exception ex)
 		{
-			_logger.LogError(ex, "Error verifying webhook signature");
+			_logger.LogError(ex, "❌ Error verifying webhook signature");
 			return false;
 		}
 	}
