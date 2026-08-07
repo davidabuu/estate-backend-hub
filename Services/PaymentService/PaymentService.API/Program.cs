@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using PaymentService.Application.Consumers;
+using PaymentService.Application.Handler;
 using PaymentService.Application.Interface;
 using PaymentService.Application.Services;
 using PaymentService.Infrastructure.Data;
@@ -36,6 +37,7 @@ builder.Services.AddScoped<IIdempotencyService, IdempotencyService>();
 builder.Services.AddMediatR(cfg =>
 {
 	cfg.RegisterServicesFromAssembly(typeof(Program).Assembly);
+	cfg.RegisterServicesFromAssembly(typeof(InitializePaymentCommandHandler).Assembly);
 });
 
 // ==========================================
