@@ -79,7 +79,7 @@ public class InitializePaymentCommandHandler : IRequestHandler<InitializePayment
 
 		// 4. Initialize Paystack payment
 		var response = await _paystackService.InitializePaymentAsync(
-			residentDue.Email,
+			residentDue.Email!,
 			residentDue.Amount,
 			reference
 		);

@@ -42,6 +42,7 @@ public class ResidentDueCreatedConsumer : IConsumer<ResidentDueCreatedEvent>
 			UserId = @event.UserId,
 			EstateId = @event.EstateId,
 			Amount = @event.Amount,
+			Email = @event.Email,
 			DueName = @event.DueName,
 			DueDate = @event.DueDate,
 			IsPaid = false,

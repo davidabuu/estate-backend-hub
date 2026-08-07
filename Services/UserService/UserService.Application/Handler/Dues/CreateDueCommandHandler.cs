@@ -50,8 +50,9 @@ public class CreateDueCommandHandler : IRequestHandler<CreateDueCommand, CreateD
 			throw new Exception("Please specify amounts for at least one property type");
 		}
 
-		// 4. Get all Active Residents in this Estat
+		// 4. Get all Active Residents in this Estate (INCLUDE the User so we can get Email)
 		var residents = await _dbContext.ResidentRegistration
+			.Include(r => r.User)  // ✅ Include User to get email
 			.Where(r => r.EstateId == command.EstateId && r.IsActive)
 			.ToListAsync(ct);
 
@@ -94,7 +95,7 @@ public class CreateDueCommandHandler : IRequestHandler<CreateDueCommand, CreateD
 			var residentDue = new ResidentDues
 			{
 				Id = Guid.NewGuid(),
-				ResidentId = resident.Id,
+				ResidentId = resident.UserId,
 				EstateDueId = estateDue.Id,
 				DueName = command.DueName,
 				Description = command.Description,
@@ -104,6 +105,9 @@ public class CreateDueCommandHandler : IRequestHandler<CreateDueCommand, CreateD
 				PropertyType = resident.PropertyType,
 				Status = DueStatus.Pending,
 				IsPaid = false,
+				
+				Email = resident.Email,
+			
 				CreatedAt = DateTime.UtcNow
 			};
 
@@ -122,14 +126,16 @@ public class CreateDueCommandHandler : IRequestHandler<CreateDueCommand, CreateD
 		{
 			await _publishEndpoint.Publish(new ResidentDueCreatedEvent(
 				ResidentDueId: residentDue.Id,
-				UserId: residentDue.ResidentId,  // You may need to include UserId in ResidentDue entity
+				UserId: residentDue.Id,
 				EstateId: command.EstateId,
 				Amount: residentDue.Amount,
+				Email: residentDue.Email!, // ✅ Ensure email is always provided
 				DueName: residentDue.DueName!,
 				DueDate: residentDue.DueDate
 			), ct);
 
-			_logger.LogInformation("📤 Published ResidentDueCreatedEvent for {ResidentDueId}", residentDue.Id);
+			_logger.LogInformation("📤 Published ResidentDueCreatedEvent for {ResidentDueId} (Email: {Email})",
+				residentDue.Id, residentDue.Email);
 		}
 
 		// 9. Return Response

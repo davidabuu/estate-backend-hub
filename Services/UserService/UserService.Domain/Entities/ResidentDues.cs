@@ -8,6 +8,8 @@ public class ResidentDues
 	public Guid Id { get; set; }
 	public Guid ResidentId { get; set; }
 	public Guid EstateDueId { get; set; }
+	public string? Email { get; set; }    // For PaymentService to use
+	
 	public string? DueName { get; set; }
 	public string? Description { get; set; }
 	public decimal Amount { get; set; }
