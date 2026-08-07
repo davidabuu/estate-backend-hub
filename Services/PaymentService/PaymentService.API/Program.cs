@@ -164,7 +164,7 @@ builder.Services.AddHostedService<IdempotencyCleanupService>();
 builder.Services.AddHttpClient<IPaystackService, PaystackService>(client =>
 {
 	client.BaseAddress = new Uri(builder.Configuration["Paystack:BaseUrl"] ?? "https://api.paystack.co");
-	client.DefaultRequestHeaders.Add("Authorization", $"Bearer {builder.Configuration["Paystack:SecretKey"]}");
+	
 });
 
 // ==========================================

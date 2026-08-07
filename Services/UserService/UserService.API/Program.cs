@@ -1,3 +1,4 @@
+using EstateHub.Contracts.Events;
 using MassTransit;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -185,7 +186,12 @@ app.UseSwaggerUI(options =>
 
 // Root redirect
 app.MapGet("/", () => Results.Redirect("/swagger"));
-
+// Add a test endpoint to publish a message
+app.MapPost("/test-publish", async (IPublishEndpoint publishEndpoint) =>
+{
+	await publishEndpoint.Publish(new TestEvent("Hello from UserService"));
+	return Results.Ok(new { message = "Test message published" });
+});
 app.UseHttpsRedirection();
 app.UseCors("AllowAll");
 app.UseAuthentication();
