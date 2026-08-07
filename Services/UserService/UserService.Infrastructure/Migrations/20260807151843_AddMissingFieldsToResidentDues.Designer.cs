@@ -12,7 +12,7 @@ using UserService.Infrastructure.Data;
 namespace UserService.Infrastructure.Migrations
 {
     [DbContext(typeof(UserDbContext))]
-    [Migration("20260807124930_AddMissingFieldsToResidentDues")]
+    [Migration("20260807151843_AddMissingFieldsToResidentDues")]
     partial class AddMissingFieldsToResidentDues
     {
         /// <inheritdoc />
