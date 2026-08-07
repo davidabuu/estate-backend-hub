@@ -1,7 +1,9 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using PaymentService.Application.Interface;
+
 using PaymentService.Application.Model;
+
 using System.Text;
 using System.Text.Json;
 
@@ -63,11 +65,10 @@ public class PaystackService : IPaystackService
 				throw new Exception($"Paystack error: {responseContent}");
 			}
 
-			// ✅ FIX: Use SnakeCaseLower naming policy for Paystack's snake_case response
 			var options = new JsonSerializerOptions
 			{
 				PropertyNameCaseInsensitive = true,
-				PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower  // ← KEY FIX!
+				PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
 			};
 
 			var result = JsonSerializer.Deserialize<PaystackResponse<InitializePaymentData>>(
@@ -125,7 +126,6 @@ public class PaystackService : IPaystackService
 				throw new Exception($"Paystack verify error: {responseContent}");
 			}
 
-			// ✅ Use the same options for verify
 			var options = new JsonSerializerOptions
 			{
 				PropertyNameCaseInsensitive = true,
@@ -158,7 +158,9 @@ public class PaystackService : IPaystackService
 		try
 		{
 			var expectedSignature = GenerateSignature(payload);
-			var isValid = signature == expectedSignature;
+
+			// ✅ FIX: Case-insensitive comparison
+			var isValid = string.Equals(expectedSignature, signature, StringComparison.OrdinalIgnoreCase);
 
 			if (!isValid)
 			{
