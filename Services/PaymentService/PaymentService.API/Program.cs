@@ -8,7 +8,7 @@ using PaymentService.Application.Handler;
 using PaymentService.Application.Interface;
 using PaymentService.Application.Services;
 using PaymentService.Infrastructure.Data;
-
+using PaymentService.Infrastructure.Services;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
