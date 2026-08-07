@@ -1,5 +1,4 @@
 <Solution>
-  <Project Path="Gateway/EstateHub.Gateway/EstateHub.Gateway.csproj" />
   <Project Path="Services/NotificationService/NotificationService.API/NotificationService.API.csproj" />
   <Project Path="Services/NotificationService/NotificationService.Application/NotificationService.Application.csproj" />
   <Project Path="Services/NotificationService/NotificationService.Domain/NotificationService.Domain.csproj" />

@@ -1,22 +1,34 @@
-﻿using MediatR;
+﻿using MassTransit;
+using MediatR;
 using PaymentService.Domain.Enums;
 using PaymentService.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
-using PaymentService.Application.Command;
 using PaymentService.Application.Interface;
 using Microsoft.Extensions.Logging;
+using EstateHub.Contracts.Events;
+using PaymentService.Application.Command;
 
 namespace PaymentService.Application.Handler;
 
-public class HandleWebhookCommandHandler(
-	PaymentDbContext dbContext,
-	IPaystackService paystackService,
-	ILogger<HandleWebhookCommandHandler> logger) : IRequestHandler<HandleWebhookCommand, bool>
+public class HandleWebhookCommandHandler : IRequestHandler<HandleWebhookCommand, bool>
 {
-	private readonly PaymentDbContext _dbContext = dbContext;
-	private readonly IPaystackService _paystackService = paystackService;
-	private readonly ILogger<HandleWebhookCommandHandler> _logger = logger;
+	private readonly PaymentDbContext _dbContext;
+	private readonly IPaystackService _paystackService;
+	private readonly IPublishEndpoint _publishEndpoint;  // ✅ Add this
+	private readonly ILogger<HandleWebhookCommandHandler> _logger;
+
+	public HandleWebhookCommandHandler(
+		PaymentDbContext dbContext,
+		IPaystackService paystackService,
+		IPublishEndpoint publishEndpoint,  // ✅ Add this
+		ILogger<HandleWebhookCommandHandler> logger)
+	{
+		_dbContext = dbContext;
+		_paystackService = paystackService;
+		_publishEndpoint = publishEndpoint;
+		_logger = logger;
+	}
 
 	public async Task<bool> Handle(HandleWebhookCommand command, CancellationToken ct)
 	{
@@ -74,8 +86,22 @@ public class HandleWebhookCommandHandler(
 
 			_logger.LogInformation("Webhook processed for payment {Reference}: {Status}", reference, payment.Status);
 
-			// TODO: Publish PaymentProcessedEvent to Service Bus
-			// await _publishEndpoint.Publish(new PaymentProcessedEvent(...));
+			// ✅ 4. PUBLISH EVENT IF PAYMENT WAS SUCCESSFUL
+			if (payment.Status == PaymentStatus.Success)
+			{
+				_logger.LogInformation("📤 Publishing PaymentProcessedEvent for Payment {PaymentId}", payment.Id);
+
+				await _publishEndpoint.Publish(new PaymentProcessedEvent(
+					PaymentId: payment.Id,
+					UserId: payment.UserId,
+					ResidentDueId: payment.ResidentDueId ?? Guid.Empty,
+					Amount: payment.Amount,
+					Reference: payment.Reference!,
+					ProcessedAt: DateTime.UtcNow
+				), ct);
+
+				_logger.LogInformation("✅ PaymentProcessedEvent published for Payment {PaymentId}", payment.Id);
+			}
 		}
 
 		return true;

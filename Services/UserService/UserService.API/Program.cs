@@ -226,6 +226,8 @@ app.MapPost("/test-publish", async (IPublishEndpoint publishEndpoint, ILogger<Pr
 	}
 
 });
+
+
 app.UseHttpsRedirection();
 app.UseCors("AllowAll");
 app.UseAuthentication();
